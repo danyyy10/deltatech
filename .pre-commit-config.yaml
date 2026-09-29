@@ -25,6 +25,17 @@ default_language_version:
   python: python3
   node: "22.9.0"
 repos:
+  # Compatibilitatea licenței cu dependențele, după tabelul Odoo Apps
+  # (AGPL-3/GPL-3/OEEL-1 nu pot depinde de module proprietare). pylint-odoo verifică
+  # doar că licența e permisă, nu și relația cu dependențele.
+  - repo: local
+    hooks:
+      - id: license-compat
+        name: Licența modulului e compatibilă cu dependențele (Odoo Apps)
+        entry: python3 scripts/check_license_compat.py --addons-dir=.
+        language: system
+        files: '__manifest__\.py$'
+        pass_filenames: false
   - repo: local
     hooks:
       - id: update-pyproject-name
@@ -51,10 +62,11 @@ repos:
         language: fail
         files: '[a-zA-Z0-9_]*/i18n/en\.po$'
       - id: check-module-icon
-        name: Fiecare modul trebuie sa aiba iconita (preluata din deltatech)
+        name: Fiecare modul trebuie sa aiba iconita lui
         entry: scripts/check_module_icon.py
         language: python
         files: '__manifest__\.py$'
+        verbose: true
       - id: check-module-images
         name: Fiecare modul trebuie sa aiba captura (preluata din deltatech)
         entry: scripts/check_module_images.py
@@ -163,7 +175,7 @@ repos:
       - id: ruff-format
 
   - repo: https://github.com/OCA/pylint-odoo
-    rev: v9.2.0
+    rev: v10.0.11
     hooks:
       - id: pylint_odoo
         name: pylint with optional checks
@@ -185,6 +197,17 @@ repos:
       - id: tb-gen-index
         name: Terrabit index.html generator (Apps Store)
         entry: python3 scripts/tb_gen_index.py --addons-dir=.
+        language: system
+        stages: [manual]
+        pass_filenames: false
+        always_run: true
+  # Rulează DUPĂ oca-gen-addon-readme, tot ca job manual: șablonul README nu vede fișierele
+  # din readme/, deci badge-ul „Fișă consultant” se pune după generare. Idempotent.
+  - repo: local
+    hooks:
+      - id: tb-fisa-badge
+        name: Badge „Fișă consultant” în README.rst
+        entry: python3 scripts/tb_fisa_badge.py --addons-dir=.
         language: system
         stages: [manual]
         pass_filenames: false

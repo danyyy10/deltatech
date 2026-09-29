@@ -1,3 +1,48 @@
+## 19.0.2.10.1 (2026-09-29)
+
+- Own module icon, instead of the generic gears it had.
+
+## 19.0.2.10.0 (2026-09-24)
+
+- **The inventory price no longer revalues the existing stock.** Until now, validating an inventory
+  wrote the line *Price* into the product cost with a context key that no longer exists in 19.0
+  (`disable_auto_svl`). On average cost products, and on standard cost products on lines with no
+  theoretical quantity, this created a `product.value`, i.e. it revalued the whole stock of the
+  product, in all locations. Now the product cost is not rewritten: only the surplus of the count
+  enters at the line price (the value of the inventory move is difference × line price), and the
+  average cost is recomputed as a weighted average. On FIFO the new layer enters at the line price;
+  missing quantities still leave at the current cost. On standard cost the line price becomes the
+  standard cost only on a line with no theoretical quantity, and only if the product has no valued
+  stock in the company.
+- The `stock.use_inventory_price` parameter now always decides: when it is off, the line price is
+  ignored, including on the lines with no theoretical quantity.
+- A **negative counted quantity** raises the explanatory message again, instead of a server error
+  (`TypeError`).
+- **Include Exhausted Products** works again when *Products* is left empty: the product filter used
+  the product type `product`, which no longer exists in 19.0.
+- The inventory moves, and therefore the accounting entries, carry the **inventory document name** as
+  reference, instead of *Product Quantity Updated (user)*.
+- **Inventory Diff** report: on a document with several locations, the missing quantities are no
+  longer repeated under every location. The quantity difference keeps its decimals (it was rounded to
+  an integer) and the numeric columns are right-aligned again (`text-end`).
+- The **Merge** wizard proposes the current date, not the date the server was started.
+- The chatter message of **Confirm Stock** shows the location again (broken placeholder).
+- Romanian translations completed; the group *Can update quantities* is now translated as such.
+
+## 19.0.2.9.0 (2026-09-14)
+
+- **Grupare** is available again in the product replenishment wizard (*product.replenish*).
+  The field existed in 18.0 as `group_id` (`procurement.group`), removed during the 19.0 port because
+  the `procurement.group` model no longer exists in core — it has now been replaced with the new O19 mechanism,
+  `stock.reference` (`reference_ids` on `stock.move`).
+- The grouping is filled in **automatically, once per day and per warehouse**: all replenishments launched
+  on the same day, from the same warehouse, receive the same reference and thus end up on a single
+  `stock.picking`, instead of a separate document per product. The field remains editable, if a
+  different manual grouping is wanted.
+- The anti-duplication guard is kept, but it is now per product+reference (not per reference, as it was in
+  18.0 per group) — otherwise the automatic daily grouping would block the replenishment of the second
+  product on the same day.
+
 ## 19.0.2.8.0 (2026-09-10)
 
 - **Valuation snapshot on the inventory line.** The line now carries the unit valuation cost

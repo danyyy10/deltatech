@@ -25,6 +25,11 @@ it cannot reach directly from the cloud: the ANAF token (PKCS#11 / mTLS
 to SPV), fiscal printers (Datecs), label printers (Zebra ZPL) and
 declaration validation (DUKIntegrator).
 
+Terrabit Connect is a desktop application for Windows, macOS and Linux,
+built with Tauri (Rust core, the operating system's own web view).
+Installers and signed automatic updates are published at
+`terrabit-connect-releases <https://github.com/dhongu/terrabit-connect-releases/releases/latest>`__.
+
 This module is the **generic foundation** every Terrabit Connect feature
 builds on: the connection layer, the job protocol, and the one job type
 that is pure transport rather than a specific device — an HTTP call
@@ -133,23 +138,66 @@ Terrabit Connect:
 |                          | secret                                    |
 +--------------------------+-------------------------------------------+
 
-Place ``station.conf`` on the workstation and restart Terrabit Connect.
-No other network configuration is required: the agent initiates all
-connections outbound to Odoo (no inbound port needs to be opened on the
-client side).
+In Terrabit Connect, import ``station.conf`` from **Setări → Importă
+config** (the agent's interface is in Romanian). The values are stored
+in the active profile of the workstation
+(``~/.terrabit-anaf-agent/profiles/<profile>.conf``) and applied without
+a restart. No other network configuration is required: the agent
+initiates all connections outbound to Odoo (no inbound port needs to be
+opened on the client side).
 
-Tuning poll and heartbeat cadence
----------------------------------
+Job polling and heartbeat (workstation side)
+--------------------------------------------
 
-The following environment variables can be set on the workstation side
-to tune timing (Terrabit Connect reads them at startup):
+The heartbeat runs on its own: once at start-up, then every 300 seconds.
+**Job polling is off until you turn it on** in the station profile:
 
-========================== ======= ====================================
-Variable                   Default Effect
-========================== ======= ====================================
-``TERRABIT_POLL_SEC``      30      Seconds between ``/tc/poll`` calls
-``TERRABIT_HEARTBEAT_SEC`` 300     Seconds between automatic heartbeats
-========================== ======= ====================================
++-----------------------------+---------+-----------------------------+
+| Variable                    | Default | Effect                      |
++=============================+=========+=============================+
+| ``TERRABIT_POLL_JOBS``      | off     | ``1`` lets the station      |
+|                             |         | claim and run jobs from     |
+|                             |         | ``/tc/poll``. While it is   |
+|                             |         | off, jobs queued in Odoo    |
+|                             |         | stay ``pending``            |
++-----------------------------+---------+-----------------------------+
+| ``TERRABIT_POLL_SEC``       | 30      | Seconds between             |
+|                             |         | ``/tc/poll`` calls (minimum |
+|                             |         | 5)                          |
++-----------------------------+---------+-----------------------------+
+
+Queue settings (Odoo side)
+--------------------------
+
+System parameters (**Settings → Technical → System Parameters**), all
+optional:
+
++----------------------------------------+---------+-----------------------------+
+| Parameter                              | Default | Effect                      |
++========================================+=========+=============================+
+| ``deltatech_tc.claim_timeout_minutes`` | 15      | A claimed job without       |
+|                                        |         | result after this long      |
+|                                        |         | counts as lost. ``0`` turns |
+|                                        |         | recovery off                |
++----------------------------------------+---------+-----------------------------+
+| ``deltatech_tc.max_attempts``          | 3       | Offers of a retry-safe job  |
+|                                        |         | before it fails             |
++----------------------------------------+---------+-----------------------------+
+| ``deltatech_tc.done_ttl_days``         | 30      | Finished jobs older than    |
+|                                        |         | this are deleted by the     |
+|                                        |         | daily cleanup (``0`` =      |
+|                                        |         | keep)                       |
++----------------------------------------+---------+-----------------------------+
+| ``deltatech_tc.error_ttl_days``        | 90      | Same for jobs in error      |
++----------------------------------------+---------+-----------------------------+
+| ``deltatech_tc.pending_ttl_hours``     | 0       | Pending jobs no station     |
+|                                        |         | picked up expire after this |
+|                                        |         | long. ``0`` = never         |
++----------------------------------------+---------+-----------------------------+
+
+Keep the claim timeout above the longest job you run (a DUKIntegrator
+validation, a slow device): a retry-safe job that is still running when
+it expires is executed twice.
 
 Hosts reachable by ``http_request`` (workstation side)
 ------------------------------------------------------
@@ -192,9 +240,9 @@ Registering a station
       TERRABIT_ODOO_BASE=<your Odoo URL>
       TERRABIT_STATION_KEY=<the generated key>
 
-6. Copy ``station.conf`` to the workstation running Terrabit Connect and
-   (re)start the agent. It will authenticate with the ``X-Station-Key``
-   header on every call.
+6. Copy ``station.conf`` to the workstation and import it in Terrabit
+   Connect (**Setări → Importă config**). The agent authenticates with
+   the ``X-Station-Key`` header on every call.
 
 Verifying connectivity
 ----------------------
@@ -203,11 +251,12 @@ Once Terrabit Connect is running with the downloaded config:
 
 1. Open the station form (**Settings → Terrabit Connect → Stations**,
    click the station).
-2. The **Last seen** field updates within the next poll cycle (≤ 30 s by
-   default).
+2. The **Last seen** field updates at the first heartbeat, sent as soon
+   as the agent starts, and then at every heartbeat or job poll.
 3. Click **Ping** in the header to enqueue a round-trip test job. The
-   job appears in the **Jobs** smart button and should reach state
-   ``Done`` within seconds.
+   job appears in the **Jobs** smart button and reaches state ``Done``
+   at the next poll — provided job polling is enabled on the workstation
+   (``TERRABIT_POLL_JOBS=1``, see CONFIGURE).
 4. Terrabit Connect managers also receive a browser notification when
    the agent sends a manual heartbeat.
 
@@ -224,6 +273,30 @@ The job list uses colour coding:
 - Red row — ``Error`` (open the form to read the error detail)
 - Muted row — ``Claimed`` (the station picked it up; result not yet
   reported)
+
+Lost results and retries
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+A job whose result never came back (agent restarted, network down
+between execution and reply) is handled after the claim timeout (see
+CONFIGURE):
+
+- **retry-safe jobs** (``ping``, ``http_request`` with ``GET`` or
+  ``HEAD``) are offered to the station again, then fail after the
+  maximum number of attempts;
+- **all other jobs** stay ``Claimed``, because they may already have
+  run. Find them with the **Claimed** filter, check on the device or at
+  ANAF whether the operation happened, and only then use **Retry** on
+  the job form (managers only).
+
+**Retry** also puts a job in ``Error`` back in the queue.
+
+A feature module whose job type only reads can declare it retry-safe:
+
+.. code:: python
+
+   def _tc_is_retry_safe(self):
+       return self.job_type == "sync_messages" or super()._tc_is_retry_safe()
 
 Rotating the API key
 --------------------
@@ -283,6 +356,54 @@ the feature module is installed.
 
 Changelog
 =========
+
+19.0.1.2.0 (2026-09-29)
+-----------------------
+
+- **Atomic claim.** ``/tc/poll`` locks the rows it hands out
+  (``FOR UPDATE SKIP LOCKED``). Two simultaneous polls with the same key
+  (a second workstation installed by copying the profile) could both
+  receive, and run, the same job.
+- **Lost results.** A job claimed longer than
+  ``deltatech_tc.claim_timeout_minutes`` (15) without a result used to
+  stay ``claimed`` for ever. A retry-safe job (``ping``, an
+  ``http_request`` with ``GET``/``HEAD``; extend ``_tc_is_retry_safe()``
+  for other read-only types) is offered again, up to
+  ``deltatech_tc.max_attempts`` (3), then fails. Any other job is left
+  ``claimed``: it may have run, and its late result is still accepted.
+- **Retry** button on the job (managers): error or stuck jobs go back to
+  ``pending``. No ``sudo``, so a read-only user cannot re-run a job over
+  RPC either.
+- **Daily cleanup** cron: ``done`` jobs older than 30 days and ``error``
+  jobs older than 90 are deleted; pending jobs can expire after
+  ``deltatech_tc.pending_ttl_hours`` (off by default).
+- New field ``attempt_count``, new **Claimed** filter.
+
+19.0.1.1.3 (2026-09-29)
+-----------------------
+
+- The endpoints accept only the ``X-Station-Key`` header. The legacy
+  ``X-Agent-Key`` fallback is removed: every Terrabit Connect release
+  since 1.5 sends ``X-Station-Key``.
+- Documentation describes the Tauri desktop agent (Windows, macOS,
+  Linux) and where to download it, how to import ``station.conf``, and
+  that job polling must be enabled on the workstation
+  (``TERRABIT_POLL_JOBS=1``). ``TERRABIT_HEARTBEAT_SEC`` is no longer
+  documented: the heartbeat interval is fixed at 300 seconds.
+- New ``readme/ROADMAP.md``.
+
+19.0.1.1.2 (2026-09-25)
+-----------------------
+
+- Security: ``/tc/poll`` returns only the jobs queued for the calling
+  station. It used to claim every pending job of the station's company
+  and reassign it, so one station could take (and read the payload of)
+  jobs meant for another workstation.
+- Security: ``/tc/result`` accepts a result only for a job in state
+  ``claimed`` (409 otherwise). A finished job could be re-posted,
+  overwriting its result and replaying the callback.
+- ``/tc/poll`` caps ``limit`` to 1–50; ``/tc/result`` rejects a
+  non-integer ``job_id`` with 400.
 
 19.0.1.1.1 (2026-08-15)
 -----------------------

@@ -19,8 +19,11 @@ Purchase Create Bill Button
 .. |badge3| image:: https://img.shields.io/badge/github-dhongu%2Fdeltatech-lightgray.png?logo=github
     :target: https://github.com/dhongu/deltatech/tree/19.0/deltatech_purchase_create_bill_button
     :alt: dhongu/deltatech
+.. |badge_fisa| image:: https://img.shields.io/badge/-Fi%C8%99%C4%83%20consultant-2ea44f.png
+    :target: https://github.com/dhongu/deltatech/blob/19.0/deltatech_purchase_create_bill_button/readme/FISA_CONSULTANT.md
+    :alt: Fișă consultant
 
-|badge1| |badge2| |badge3|
+|badge1| |badge2| |badge3| |badge_fisa|
 
 In Odoo 19, the "Create Bill" button on the purchase order form was
 replaced by an "Upload Bill" widget that requires selecting a file
@@ -34,6 +37,13 @@ Odoo 19 also dropped the automatic copy of the purchase order's "Vendor
 Reference" into the vendor bill's "Reference" and "Payment Reference"
 fields when a bill is created from a purchase order. This module
 restores that copy as well, matching the Odoo 18 behavior.
+
+The same applies to the purchase order list: in Odoo 19 the "Create
+Bills" header button was kept only on the "Purchase Orders" list, while
+the Requests for Quotation list (the default dashboard list) lost it.
+This module restores it there as well, so several purchase orders can be
+selected and billed in one go — including returns, which Odoo converts
+automatically into a vendor credit note when the total is negative.
 
 **Table of contents**
 

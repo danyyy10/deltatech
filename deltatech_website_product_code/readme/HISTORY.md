@@ -1,3 +1,14 @@
+## 19.0.1.3.3 (2026-09-29)
+
+- Own module icon, instead of the generic gears it had.
+
+## 19.0.1.3.2 (2026-09-25)
+
+- Security: the `vat` parameter of `/shop/products-json` and
+  `/shop/products-search` is now honoured only for internal users. For public
+  and portal visitors it is ignored, so comparing results with and without
+  `vat` no longer reveals which partner supplies a product.
+
 ## 19.0.1.3.1 (2026-07-28)
 
 - Exact-phrase search is now limited to terms carrying a digit. A term made of

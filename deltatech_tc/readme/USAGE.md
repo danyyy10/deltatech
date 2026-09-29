@@ -11,17 +11,20 @@
    TERRABIT_ODOO_BASE=<your Odoo URL>
    TERRABIT_STATION_KEY=<the generated key>
    ```
-6. Copy `station.conf` to the workstation running Terrabit Connect and (re)start
-   the agent. It will authenticate with the `X-Station-Key` header on every call.
+6. Copy `station.conf` to the workstation and import it in Terrabit Connect
+   (**Setări → Importă config**). The agent authenticates with the
+   `X-Station-Key` header on every call.
 
 ## Verifying connectivity
 
 Once Terrabit Connect is running with the downloaded config:
 
 1. Open the station form (**Settings → Terrabit Connect → Stations**, click the station).
-2. The **Last seen** field updates within the next poll cycle (≤ 30 s by default).
+2. The **Last seen** field updates at the first heartbeat, sent as soon as the
+   agent starts, and then at every heartbeat or job poll.
 3. Click **Ping** in the header to enqueue a round-trip test job. The job appears
-   in the **Jobs** smart button and should reach state `Done` within seconds.
+   in the **Jobs** smart button and reaches state `Done` at the next poll — provided
+   job polling is enabled on the workstation (`TERRABIT_POLL_JOBS=1`, see CONFIGURE).
 4. Terrabit Connect managers also receive a browser notification when the agent
    sends a manual heartbeat.
 
@@ -36,6 +39,26 @@ The job list uses colour coding:
 - Green row — `Done`
 - Red row — `Error` (open the form to read the error detail)
 - Muted row — `Claimed` (the station picked it up; result not yet reported)
+
+### Lost results and retries
+
+A job whose result never came back (agent restarted, network down between execution and
+reply) is handled after the claim timeout (see CONFIGURE):
+
+- **retry-safe jobs** (`ping`, `http_request` with `GET` or `HEAD`) are offered to the
+  station again, then fail after the maximum number of attempts;
+- **all other jobs** stay `Claimed`, because they may already have run. Find them with the
+  **Claimed** filter, check on the device or at ANAF whether the operation happened, and only
+  then use **Retry** on the job form (managers only).
+
+**Retry** also puts a job in `Error` back in the queue.
+
+A feature module whose job type only reads can declare it retry-safe:
+
+```python
+def _tc_is_retry_safe(self):
+    return self.job_type == "sync_messages" or super()._tc_is_retry_safe()
+```
 
 ## Rotating the API key
 

@@ -1,3 +1,12 @@
+## 19.0.1.0.2 (2026-09-29)
+
+- Own module icon, instead of the generic gears it had.
+
+## 19.0.1.0.1 (2026-09-23)
+
+- The merge simulation rolls back its savepoint through `contextlib.suppress(_Rollback)`
+  instead of `except _Rollback: pass`; behavior is unchanged.
+
 ## 19.0.1.0.0 (2026-08-18)
 
 - Add: bulk merge of partners duplicated on the same VAT number, with classification, guards,

@@ -1,3 +1,7 @@
+## 19.0.1.4.1
+
+- Own module icon, instead of the generic gears it had.
+
 ## 19.0.1.4.0
 
 - [IMP] the product of the extra line goes through a hook, `SaleOrderLine._get_extra_product()`, instead of being read from `product_id.extra_product_id` in place. A module can now decide the extra product from the order line, so the line no longer requires the field to be filled in on every product. The default behaviour is unchanged
@@ -8,7 +12,7 @@
 
 ## 19.0.1.3.0
 
-- [IMP] Romanian translation (`i18n/ro.po`): the group reads **Linie suplimentară** and the fields **Produs suplimentar**, **Procent suplimentar**, **Cantitate suplimentară**, instead of staying in English on a Romanian interface
+- [IMP] Romanian translation (`i18n/ro.po`): the group **Extra Line** and the fields **Extra Product**, **Extra Percent**, **Extra Qty** are now translated into Romanian, instead of staying in English on a Romanian interface
 - [IMP] the field tooltips describe the current behaviour: the percent tooltip no longer claims that a zero percent uses the price of the extra product "directly" (since 19.0.1.1.0 the standard price computation applies, with the pricelist, currency and unit of measure of the order), and the quantity tooltip states that the value is a multiplier of the main line quantity
 
 ## 19.0.1.2.0
