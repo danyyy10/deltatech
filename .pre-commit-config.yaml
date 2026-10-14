@@ -32,7 +32,7 @@ repos:
     hooks:
       - id: license-compat
         name: Licența modulului e compatibilă cu dependențele (Odoo Apps)
-        entry: python3 scripts/check_license_compat.py --addons-dir=.
+        entry: python scripts/check_license_compat.py --addons-dir=.
         language: system
         files: '__manifest__\.py$'
         pass_filenames: false
@@ -196,7 +196,7 @@ repos:
     hooks:
       - id: tb-gen-index
         name: Terrabit index.html generator (Apps Store)
-        entry: python3 scripts/tb_gen_index.py --addons-dir=.
+        entry: python scripts/tb_gen_index.py --addons-dir=.
         language: system
         stages: [manual]
         pass_filenames: false
@@ -207,7 +207,7 @@ repos:
     hooks:
       - id: tb-fisa-badge
         name: Badge „Fișă consultant” în README.rst
-        entry: python3 scripts/tb_fisa_badge.py --addons-dir=.
+        entry: python scripts/tb_fisa_badge.py --addons-dir=.
         language: system
         stages: [manual]
         pass_filenames: false

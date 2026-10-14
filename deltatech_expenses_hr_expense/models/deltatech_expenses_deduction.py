@@ -21,6 +21,7 @@ class DeltatechExpensesDeduction(models.Model):
                 ("expenses_deduction_id", "=", False),
                 ("state", "in", ("submitted", "approved")),
                 ("account_move_id", "=", False),
+                ("payment_mode", "=", "own_account"),
             ]
         )
 
@@ -41,6 +42,10 @@ class DeltatechExpensesDeduction(models.Model):
             raise UserError(self.env._("Cheltuielile pot fi preluate doar într-un decont în starea Draft sau Advance."))
         line_model = self.env["deltatech.expenses.deduction.line"]
         expenses = expenses.filtered(lambda e: not e.expenses_deduction_id)
+        if expenses.filtered(lambda e: e.payment_mode != "own_account"):
+            raise UserError(
+                self.env._("Only employee-paid expenses can be imported into an employee cash advance deduction.")
+            )
         invalid = expenses.filtered(
             lambda e: e.employee_id != self.employee_id
             or e.company_id != self.company_id
@@ -56,26 +61,20 @@ class DeltatechExpensesDeduction(models.Model):
                 % ", ".join(invalid.mapped("name"))
             )
         for expense in expenses:
-            # Linia de decont interpretează `amount` conform flag-ului price_include al taxelor
-            # (compute_all pe aceleași taxe). Pentru taxe „TVA inclus" trimitem brutul, pentru taxe
-            # „pe deasupra" (non-price-include) trimitem netul, ca subtotalul + TVA-ul să corespundă
-            # exact cu cheltuiala hr.expense.
-            taxes = expense.tax_ids
-            price_include = bool(taxes) and all(taxes.mapped("price_include"))
-            line_amount = expense.total_amount if price_include else expense.untaxed_amount
+            # Suma liniei de decont e mereu brută (TVA inclus), indiferent de flag-ul price_include
+            # al taxelor: linia extrage singură baza și TVA-ul, la fel ca hr.expense.
             line_model.create(
                 {
                     "expenses_deduction_id": self.id,
                     "hr_expense_id": expense.id,
                     "name": expense.name,
                     "date": expense.date,
-                    "amount": line_amount,
+                    "amount": expense.total_amount,
                     "tax_ids": [(6, 0, expense.tax_ids.ids)],
                     "partner_id": expense.vendor_id.id,
                     "expense_account_id": expense.account_id.id,
                     "analytic_distribution": expense.analytic_distribution,
                     "type": "expenses",
-                    "currency_id": expense.currency_id.id,
                 }
             )
         if expenses:
