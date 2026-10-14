@@ -72,6 +72,7 @@ msgid "<strong>TVA</strong>"
 msgstr ""
 
 #. module: deltatech_expenses
+#: model:ir.model.fields,field_description:deltatech_expenses.field_deltatech_expenses_deduction__account_diem_id
 msgid "Account"
 msgstr ""
 
@@ -298,7 +299,7 @@ msgstr ""
 #. module: deltatech_expenses
 #. odoo-python
 #: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "Diferență avans"
+msgid "Deferenta Avans"
 msgstr ""
 
 #. module: deltatech_expenses
@@ -351,7 +352,7 @@ msgstr ""
 #. module: deltatech_expenses
 #. odoo-python
 #: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "Diurnă"
+msgid "Diurna"
 msgstr ""
 
 #. module: deltatech_expenses
@@ -604,7 +605,7 @@ msgstr ""
 
 #. module: deltatech_expenses
 #: model:ir.model.fields,help:deltatech_expenses.field_deltatech_expenses_deduction_line__tax_ids
-msgid "VAT on the receipt; the amount is always entered with VAT included."
+msgid "Only for tax excluded from price"
 msgstr ""
 
 #. module: deltatech_expenses
@@ -787,7 +788,6 @@ msgstr ""
 
 #. module: deltatech_expenses
 #: model:ir.model.fields,field_description:deltatech_expenses.field_deltatech_expenses_deduction__voucher_ids
-#: model_terms:ir.ui.view,arch_db:deltatech_expenses.view_deltatech_expenses_deduction_form
 msgid "Vouchers"
 msgstr ""
 
@@ -862,55 +862,4 @@ msgstr ""
 #. module: deltatech_expenses
 #: model_terms:ir.ui.view,arch_db:deltatech_expenses.hr_expense_view_form_deduction
 msgid "și se contabilizează acolo; postarea standard este dezactivată."
-msgstr ""
-
-#. module: deltatech_expenses
-#: model:ir.model.fields,help:deltatech_expenses.field_deltatech_expenses_deduction_line__amount
-msgid "Amount on the receipt, VAT included."
-msgstr ""
-
-#. module: deltatech_expenses
-#: model_terms:ir.ui.view,arch_db:deltatech_expenses.view_deltatech_expenses_deduction_form
-msgid "Total Untaxed"
-msgstr ""
-
-#. module: deltatech_expenses
-#: model:ir.model.fields,field_description:deltatech_expenses.field_deltatech_expenses_deduction__account_diem_id
-msgid "Diem Account"
-msgstr ""
-
-#. module: deltatech_expenses
-#. odoo-python
-#: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "An expenses deduction is created in the Draft status; the status is changed only with the workflow buttons."
-msgstr ""
-
-#. module: deltatech_expenses
-#. odoo-python
-#: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "The expenses deduction %(number)s is done or cancelled: its amounts, lines and accounting data can no longer be changed. Invalidate it and validate it again."
-msgstr ""
-
-#. module: deltatech_expenses
-#. odoo-python
-#: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "The expenses deduction %(number)s is done or cancelled: its lines can no longer be changed. Invalidate it and validate it again."
-msgstr ""
-
-#. module: deltatech_expenses
-#. odoo-python
-#: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "The expenses deduction %(number)s cannot be cancelled: only a draft deduction can be cancelled (an advanced or done one has journal entries)."
-msgstr ""
-
-#. module: deltatech_expenses
-#. odoo-python
-#: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "The status of an expenses deduction is changed only with the workflow buttons (Advance, Validate, Invalidate), not by a direct write."
-msgstr ""
-
-#. module: deltatech_expenses
-#. odoo-python
-#: code:addons/deltatech_expenses/models/deltatech_expenses_deduction.py:0
-msgid "The advance of the expenses deduction %(number)s is already posted: the advance amount, journals, advance date, employee and company can no longer be changed. To change the advance, invalidate the deduction."
 msgstr ""

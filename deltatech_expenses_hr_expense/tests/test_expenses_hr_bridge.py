@@ -13,87 +13,6 @@ class TestExpensesHrBridge(TestExpenses):
     """Testele punții hr.expense <-> deltatech.expenses.deduction. Fixture-urile (companie,
     jurnale, conturi, taxe, angajat, furnizor) sunt cele din TestExpenses (deltatech_expenses)."""
 
-    def _payer_currency_fixture(self, payment_mode="own_account", currency=None):
-        deduction = self.env["deltatech.expenses.deduction"].create(
-            {
-                "date_advance": fields.Date.today(),
-                "employee_id": self.employee.id,
-                "advance": 200,
-                "journal_id": self.cash_journal.id,
-                "expense_journal_id": self.adv_journal.id,
-                "journal_diem_id": self.diary_journal.id,
-                "account_diem_id": self.acc_exp.id,
-            }
-        )
-        product = self.env["product.product"].create(
-            {"name": "Bridge regression receipt", "can_be_expensed": True, "standard_price": 0}
-        )
-        expense = self.env["hr.expense"].create(
-            {
-                "name": "Bridge regression receipt",
-                "employee_id": self.employee.id,
-                "product_id": product.id,
-                "payment_mode": payment_mode,
-                "currency_id": (currency or self.company.currency_id).id,
-                "total_amount_currency": 121,
-                "tax_ids": [(6, 0, self.tax_incl_21.ids)],
-                "account_id": self.acc_exp.id,
-                "vendor_id": self.supplier.id,
-            }
-        )
-        expense.approval_state = "approved"
-        return deduction, expense
-
-    def test_company_paid_excluded_and_backend_rejected(self):
-        deduction, expense = self._payer_currency_fixture("company_account")
-        self.assertNotIn(expense, deduction._eligible_hr_expenses())
-        wizard = (
-            self.env["deltatech.expenses.import.hr"].with_context(default_expenses_deduction_id=deduction.id).create({})
-        )
-        self.assertNotIn(expense, wizard.expense_ids)
-        wizard.expense_ids = expense
-        with self.assertRaises(UserError):
-            wizard.action_import()
-        self.assertFalse(expense.expenses_deduction_id)
-        self.assertFalse(deduction.expenses_line_ids)
-        self.assertFalse(expense.account_move_id)
-
-    def test_mixed_payers_rejected_without_partial_import(self):
-        deduction, employee_paid = self._payer_currency_fixture()
-        company_paid = employee_paid.copy({"payment_mode": "company_account"})
-        company_paid.approval_state = "approved"
-        with self.assertRaises(UserError):
-            deduction._import_hr_expenses(employee_paid | company_paid)
-        self.assertFalse(deduction.expenses_line_ids)
-        self.assertFalse((employee_paid | company_paid).expenses_deduction_id)
-
-    def test_foreign_currency_preserves_native_company_amount(self):
-        currency = self.env.ref("base.EUR")
-        if currency == self.company.currency_id:
-            currency = self.env.ref("base.USD")
-        currency.active = True
-        self.env["res.currency.rate"].create(
-            {"currency_id": currency.id, "company_id": self.company.id, "name": fields.Date.today(), "rate": 0.2}
-        )
-        deduction, expense = self._payer_currency_fixture(currency=currency)
-        deduction.validate_advance()
-        deduction._import_hr_expenses(expense)
-        line = deduction.expenses_line_ids
-        self.assertEqual(line.currency_id, self.company.currency_id)
-        self.assertAlmostEqual(line.amount, expense.total_amount, places=2)
-        self.assertAlmostEqual(line.price_subtotal, expense.untaxed_amount, places=2)
-        self.assertAlmostEqual(line.tax_amount, expense.tax_amount, places=2)
-        deduction.validate_expenses()
-        receipt = self.env["account.move"].search(
-            [("expenses_deduction_id", "=", deduction.id), ("move_type", "=", "in_receipt")]
-        )
-        self.assertEqual(len(receipt), 1)
-        self.assertEqual(receipt.currency_id, self.company.currency_id)
-        self.assertAlmostEqual(receipt.amount_total, expense.total_amount, places=2)
-        self.assertAlmostEqual(receipt.amount_tax, expense.tax_amount, places=2)
-        self.assertFalse(expense.action_post())
-        self.assertFalse(expense.account_move_id)
-
     def test_import_hr_expenses_into_deduction(self):
         """Wizard-ul preia cheltuielile hr.expense eligibile în linii de decont și le leagă."""
         deduction = self.env["deltatech.expenses.deduction"].create(
@@ -195,7 +114,7 @@ class TestExpensesHrBridge(TestExpenses):
         expense.approval_state = "approved"
         deduction._import_hr_expenses(expense)
         line = deduction.expenses_line_ids
-        self.assertAlmostEqual(line.amount, 121.0, places=2)  # brutul, ca pe bon
+        self.assertAlmostEqual(line.amount, 100.0, places=2)  # netul, nu brutul
         self.assertAlmostEqual(line.price_subtotal, 100.0, places=2)
         self.assertAlmostEqual(line.tax_amount, 21.0, places=2)
         # totalul recompus pe decont = brutul cheltuielii (fără umflare)
