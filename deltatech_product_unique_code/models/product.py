@@ -65,7 +65,7 @@ class ProductProduct(models.Model):
         if self.env.user.has_group("deltatech_product_unique_code.group_product_duplicate_code"):
             return
         values = products.mapped(field_name)
-        values = [v for v in values if v]
+        values = {v for v in values if v}
         if not values:
             return
         label = self._unique_code_field_label(field_name)
@@ -75,7 +75,7 @@ class ProductProduct(models.Model):
         # and we want to prevent duplicates across both.
 
         for model_name in ["product.product", "product.template"]:
-            domain = [(field_name, "in", values)]
+            domain = [(field_name, "in", sorted(values))]
             # Search for all products/templates with these codes, including archived ones
             all_records = self.env[model_name].sudo().with_context(active_test=False).search(domain)
 
@@ -83,6 +83,9 @@ class ProductProduct(models.Model):
             duplicates = {}
             for record in all_records:
                 val = record[field_name]
+                # A template can match through a variant without exposing its code.
+                if val not in values:
+                    continue
                 if val not in duplicates:
                     duplicates[val] = self.env[model_name]
                 duplicates[val] += record
