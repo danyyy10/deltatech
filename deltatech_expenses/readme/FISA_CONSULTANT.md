@@ -216,8 +216,12 @@ contravaloarea în lei la cursul BNR din data avansului (casa este 5314).
 
 Adăugați liniile de cheltuieli: dată, referință (ce s-a cumpărat), **Total** = suma de pe bon sau
 factură, **cu TVA inclus**, taxa de achiziție, furnizor și contul de cheltuială. Modulul extrage
-baza și TVA-ul din total, oricum ar fi configurată taxa („inclusă în preț" sau „pe deasupra"); cu o
-taxă „pe deasupra" poate apărea o rotunjire de 1 ban față de bon. Alegeți cota corectă la data
+baza și TVA-ul din total. Pentru o linie de cheltuială cu sumă pozitivă și o singură taxă
+procentuală cu cotă pozitivă, neinclusă în preț („pe deasupra”), chitanța păstrează suma brută
+de pe bon dacă taxa are o singură linie de repartizare TVA, de 100%.
+Dacă Odoo recalculează TVA-ul cu o diferență de un ban, modulul ajustează TVA-ul chitanței,
+fără a schimba baza și fără a genera o plată sau o restituire pentru rotunjire.
+Verificați baza și TVA-ul față de documentul justificativ. Alegeți cota corectă la data
 operațiunii (de ex. cazarea are 11%) și puneți taxă doar dacă documentul dă drept de deducere:
 factura sau un bon fiscal de cel mult 100 euro cu **codul de TVA al firmei** tipărit. Un bon fără cod
 de TVA sau peste 100 euro se introduce fără taxă, iar TVA-ul rămâne în cheltuială (pentru sume mari
@@ -535,6 +539,10 @@ după validare.
 - [ ] Contabilul are rolul Contabil, iar cel care aprobă avansul rolul Aprobator; angajații nu au roluri în modul.
 - [ ] Liniile de deplasare au contul 625, nu 623 implicit.
 - [ ] Un bon de 555 lei cu TVA 11% dă bază 500 și TVA 55; „Total chitanțe" este egal cu suma bonurilor.
+- [ ] Pentru un avans în numerar de 199,85 lei și un bon de aceeași valoare, cu o singură taxă de 21%
+  neinclusă în preț și cu repartizare 100%, verificați după validare: bază 165,17 lei, TVA 34,68 lei,
+  total chitanță 199,85 lei și diferență de decont 0,00 lei. Singura mișcare de casă este acordarea
+  avansului; pe 542, debitul și creditul se compensează integral.
 - [ ] Diferența = cheltuieli + diurnă − avans (negativă = angajatul restituie).
 - [ ] Nota de diferență din casă are data decontului, nu data avansului.
 - [ ] O linie „Plată furnizor” are contul 401 din „Cont de plătit” al furnizorului, fără taxe, iar nota Dr 401 = Cr 542 e pe totalul liniei.
@@ -597,7 +605,10 @@ după validare.
 | „The bill ... is not a bill of the supplier ... in this company.” | Furnizorul liniei a fost schimbat după alegerea facturilor | Alegeți din nou facturile furnizorului |
 | „Only a supplier payment line can pay bills: line ... is an expense.” | Tipul liniei a fost schimbat în „Cheltuieli” după alegerea facturilor | Scoateți facturile alese sau readuceți tipul „Plată furnizor” |
 | „A bill can be allocated only once on a supplier payment line.” | Aceeași factură a fost aleasă de două ori pe linie | Păstrați un singur rând pentru factură, cu suma totală alocată |
-| „Total chitanțe" diferă cu 1 ban de bon | Taxă „pe deasupra": TVA-ul se recalculează pe baza rotunjită | Folosiți o taxă „inclusă în preț" pentru potrivire exactă |
+| „The generated receipt does not match the gross amount of line …” | Chitanța nu poate fi adusă la brutul liniei în limitele ajustării: diferența depășește un ban, grupul de TVA nu corespunde, baza diferă sau totalul nu coincide după ajustare | Verificați suma brută, baza, TVA-ul și configurarea taxei față de documentul justificativ. Nu schimbați cota ori tipul taxei doar pentru a forța validarea și nu înregistrați o mișcare de casă pentru rotunjire. |
+
+Corecția automată de un ban nu se aplică în cazul taxelor multiple sau al altor configurații
+care nu îndeplinesc condițiile de la pasul 2.
 
 Mesajele despre contul 5125, jurnalul de numerar / bancă și cardul de firmă nu au încă traducere în
 română și apar în engleză, chiar și în interfața în română. În ele, „...” din locul numărului decontului este numărul `DEC/…`,
